@@ -1,73 +1,140 @@
-# Welcome to your Lovable project
+# Vite + React + TypeScript + Supabase
 
-## Project info
+Projeto pronto para deploy no **Easypanel** via **App Service** conectado ao GitHub.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Rodar Local (Desenvolvimento)
 
-## How can I edit this code?
+1. **Clone o repositório**
+   ```bash
+   git clone <seu-repo>
+   cd <seu-repo>
+   ```
 
-There are several ways of editing your application.
+2. **Crie o arquivo `.env.local`** (não versionado!)
+   ```env
+   VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+   VITE_SUPABASE_ANON_KEY=sua-anon-key-aqui
+   ```
 
-**Use Lovable**
+3. **Instale as dependências e rode**
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+4. Acesse `http://localhost:5173`
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 📦 Subir no GitHub
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. **Confirme que `.env.local` está no `.gitignore`** (já está configurado)
+2. **NÃO suba arquivos `.env` com chaves reais**
+3. Faça commit e push:
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## ☁️ Deploy no Easypanel
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 1. Criar App Service
+- No Easypanel, crie um novo **App Service**
+- Conecte ao seu repositório GitHub
+- **Build**: Selecione `Dockerfile` (caminho: `Dockerfile` na raiz)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 2. Configurar Variáveis de Ambiente
+No painel do Easypanel, vá em **Environment** e adicione:
 
-# Step 3: Install the necessary dependencies.
-npm i
+| Variável | Valor |
+|----------|-------|
+| `VITE_SUPABASE_URL` | `https://seu-projeto.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | `sua-anon-key-aqui` |
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 3. Configurar Domínio/Porta
+- Em **Domains/Proxy**, configure a porta do app como `80`
+- Configure seu domínio personalizado se desejar
+
+### 4. Deploy
+- Clique em **Deploy**
+- O Easypanel vai:
+  1. Clonar o repositório
+  2. Buildar com o Dockerfile
+  3. Injetar as variáveis em runtime via `/env.js`
+  4. Servir o app com nginx em HTTPS
+
+---
+
+## 🔧 Arquitetura
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      PRODUÇÃO                            │
+├─────────────────────────────────────────────────────────┤
+│  Easypanel Environment                                   │
+│  ├─ VITE_SUPABASE_URL                                   │
+│  └─ VITE_SUPABASE_ANON_KEY                              │
+│           │                                              │
+│           ▼                                              │
+│  Docker Container                                        │
+│  ├─ 99-env.sh → gera /env.js em runtime                 │
+│  ├─ nginx serve SPA                                      │
+│  └─ App lê window.__ENV__                               │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                   DESENVOLVIMENTO                        │
+├─────────────────────────────────────────────────────────┤
+│  .env.local (não versionado)                            │
+│  ├─ VITE_SUPABASE_URL                                   │
+│  └─ VITE_SUPABASE_ANON_KEY                              │
+│           │                                              │
+│           ▼                                              │
+│  Vite Dev Server                                         │
+│  └─ App lê import.meta.env                              │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📁 Estrutura do Projeto
 
-**Use GitHub Codespaces**
+```
+/
+├── Dockerfile          # Multi-stage build + runtime env
+├── nginx.conf          # SPA fallback + cache config
+├── .env.example        # Modelo das variáveis
+├── public/
+│   └── env.js          # Sobrescrito em runtime (prod)
+├── src/
+│   ├── main.tsx
+│   ├── App.tsx
+│   └── lib/
+│       └── supabaseClient.ts  # Cliente com fallback runtime/vite
+└── README.md
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🔒 Segurança
 
-This project is built with:
+- ✅ Chaves **nunca** são commitadas no repositório
+- ✅ Em produção, variáveis são injetadas em runtime
+- ✅ O `env.js` gerado não é cacheado pelo nginx
+- ✅ A interface nunca mostra a key completa
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## 🛠️ Tecnologias
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Vite** - Build tool
+- **React 18** - UI Library
+- **TypeScript** - Type safety
+- **Supabase** - Backend as a Service
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI Components
+- **Nginx** - Production server
+- **Docker** - Containerization
