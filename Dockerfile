@@ -1,11 +1,20 @@
-# Estágio final com Nginx
-FROM nginx:alpine
+# Estágio 1: Build (Gera a pasta dist)
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-# Copia os arquivos buildados
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Estágio 2: Produção (Servidor Nginx)
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
+
+# Agora o "from=builder" funciona porque definimos o estágio acima
+COPY --from=builder /app/dist .
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Cria o diretório caso ele não exista e gera o script de ambiente
+# Script para injetar as chaves do Supabase em runtime
 RUN mkdir -p /docker-entrypoint.d && \
     printf '#!/bin/sh\n\
 set -e\n\
@@ -18,5 +27,4 @@ EOF\n\
 ' > /docker-entrypoint.d/99-env.sh && chmod +x /docker-entrypoint.d/99-env.sh
 
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]
